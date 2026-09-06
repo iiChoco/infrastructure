@@ -1,0 +1,11 @@
+# Source defaults are sibling checkouts: ../ciel and ../yunhan.me.
+# Server paths deliberately remain unchanged during the local reorganization.
+[targets.ciel]
+host = "ciel@172.184.253.239"
+destination = "~/jarvis"
+service = "ciel-hub"
+
+[targets.website]
+host = "ciel@172.184.253.239"
+destination = "~/yunhan.me"
+service = "door"
