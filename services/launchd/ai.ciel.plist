@@ -6,9 +6,9 @@
 	<string>ai.ciel</string>
 	<key>ProgramArguments</key>
 	<array>
-		<string>__CIEL_ROOT__/.venv/bin/python</string>
-		<string>-m</string>
-		<string>ciel</string>
+		<string>/bin/sh</string>
+		<string>-c</string>
+		<string>mkdir -p "__USER_HOME__/.ciel/log" &amp;&amp; exec "__CIEL_ROOT__/.venv/bin/python" -m ciel</string>
 	</array>
 	<key>EnvironmentVariables</key>
 	<dict>

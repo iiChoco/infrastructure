@@ -38,7 +38,7 @@ class DeploymentTests(unittest.TestCase):
             deploy.validate_source("website", self.source)
 
     def test_preview_with_sync_cannot_mutate_remote(self):
-        plan = deploy.commands("ciel", self.source, "user@host", "~/jarvis", True, False)
+        plan = deploy.commands("ciel", self.source, "user@host", "~/ciel", True, False)
         self.assertIn("--dry-run", plan[0])
         self.assertEqual(plan[0][-2], str(self.source.resolve()) + "/")
         self.assertIn("--locked", plan[1][-1])
@@ -63,15 +63,21 @@ class DeploymentTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 deploy.validate_remote("user@host", destination)
         with self.assertRaises(ValueError):
-            deploy.validate_remote("-oProxyCommand=bad", "~/jarvis")
+            deploy.validate_remote("-oProxyCommand=bad", "~/ciel")
 
     def test_rendering_handles_spaces_and_xml_characters(self):
         home = Path(self.temp.name) / "A & B"
         for template in (ROOT / "services/launchd").glob("*.plist"):
             document = plistlib.loads(render.render(template, self.source, home))
             self.assertEqual(document["WorkingDirectory"], str(self.source))
-            self.assertEqual(document["ProgramArguments"][0], str(self.source / ".venv/bin/python"))
-            self.assertEqual(Path(document["StandardOutPath"]).parent, home / ".ciel/log")
+            log_dir = home / ".ciel/log"
+            self.assertEqual(Path(document["StandardOutPath"]).parent, log_dir)
+            # launchd opens the log files before the program runs and cannot
+            # create their directory, so the launcher must, then exec python.
+            program, flag, script = document["ProgramArguments"]
+            self.assertEqual([program, flag], ["/bin/sh", "-c"])
+            self.assertIn(f'mkdir -p "{log_dir}"', script)
+            self.assertIn(f'exec "{self.source / ".venv/bin/python"}" -m ciel', script)
 
 
 if __name__ == "__main__":
