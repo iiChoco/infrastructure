@@ -2,7 +2,7 @@
 # Server paths deliberately remain unchanged during the local reorganization.
 [targets.ciel]
 host = "ciel@172.184.253.239"
-destination = "~/jarvis"
+destination = "~/ciel"
 service = "ciel-hub"
 
 [targets.website]

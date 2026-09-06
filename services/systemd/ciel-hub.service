@@ -20,7 +20,7 @@ Wants=network-online.target tailscaled.service
 [Service]
 Type=simple
 User=ciel
-WorkingDirectory=/home/ciel/jarvis
+WorkingDirectory=/home/ciel/ciel
 Environment=PATH=/home/ciel/.local/bin:/usr/local/bin:/usr/bin:/bin
 Environment=HOME=/home/ciel
 Environment=PYTHONUNBUFFERED=1
@@ -35,7 +35,7 @@ Environment=TZ=America/Los_Angeles
 # the model's forbidden list by name. Optional, so a box logged in through
 # `claude login` (which writes ~/.claude/.credentials.json) works without it.
 EnvironmentFile=-/home/ciel/.ciel/hub.env
-ExecStart=/home/ciel/jarvis/.venv/bin/python -m ciel hub
+ExecStart=/home/ciel/ciel/.venv/bin/python -m ciel hub
 Restart=always
 RestartSec=5
 # The SDK subprocess and the npx connectors are children; stop them too.

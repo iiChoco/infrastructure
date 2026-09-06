@@ -9,7 +9,7 @@ the map of how the applications run together.
 
 ```text
 ~/Projects/
-  ciel/             # existing Ciel repository; Git remote remains iiChoco/jarvis
+  ciel/             # Ciel; Git remote iiChoco/ciel (renamed from jarvis 2026-09-06)
   yunhan.me/        # website, Door, math, Instrument
   infrastructure/  # this repository
 ```
@@ -36,8 +36,9 @@ project files. Host and destination defaults are in `config/deploy.toml`.
 `config/local.toml` for local overrides, passed with `--config`.
 
 The application repositories retain `scripts/push_hub.sh` and `scripts/push.sh`
-as forwarding commands. They now preview by default too. Set
-`INFRASTRUCTURE_DIR` if this repository is not under `~/Projects`.
+as forwarding commands. Unlike `deploy.py`, they deploy by default (`--preview`
+prints only, `--dry-run` compares). Set `INFRASTRUCTURE_DIR` if this repository
+is not under `~/Projects`.
 
 An applied deployment uses rsync with deletion inside the selected application
 directory. Review source and destination first. Application credentials,
@@ -51,12 +52,12 @@ sync deployment, not an atomic release mechanism.
 
 | Component | Source on the server | Service / launch label | State |
 |---|---|---|---|
-| Ciel hub | `/home/ciel/jarvis` | `ciel-hub` | `/home/ciel/.ciel` |
+| Ciel hub | `/home/ciel/ciel` | `ciel-hub` | `/home/ciel/.ciel` |
 | Door and static sites | `/home/ciel/yunhan.me` | `door` | `/home/ciel/.door` |
 | Mac spoke | `~/Projects/ciel` | `ai.ciel.spoke` | `~/.ciel` |
 | Optional local all-in-one Ciel | `~/Projects/ciel` | `ai.ciel` | `~/.ciel` |
 
-Server paths intentionally retain their previous names. `services/systemd/`
+The server checkout moved to `/home/ciel/ciel` on 2026-09-06 (`~/jarvis` there is a symlink for stale pushes). `services/systemd/`
 contains the units for that server layout. Copying these files locally does
 not install them on the server. Installation and routing are documented in
 [operations](docs/operations.md).
