@@ -6,9 +6,11 @@
 	<string>ai.ciel.spoke</string>
 	<key>ProgramArguments</key>
 	<array>
-		<string>/bin/sh</string>
-		<string>-c</string>
-		<string>mkdir -p "__USER_HOME__/.ciel/log" &amp;&amp; exec "__CIEL_ROOT__/.venv/bin/python" -m ciel spoke</string>
+		<string>__LAUNCHER__</string>
+		<string>__CIEL_ROOT__/.venv/bin/python</string>
+		<string>-m</string>
+		<string>ciel</string>
+		<string>spoke</string>
 	</array>
 	<key>EnvironmentVariables</key>
 	<dict>

@@ -1,7 +1,12 @@
 """No network, services, credentials, or production data are used."""
 import importlib.util
 from pathlib import Path
+import os
 import plistlib
+import shutil
+import signal
+import subprocess
+import time
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -67,17 +72,57 @@ class DeploymentTests(unittest.TestCase):
 
     def test_rendering_handles_spaces_and_xml_characters(self):
         home = Path(self.temp.name) / "A & B"
+        launcher = home / "Ciel.app/Contents/MacOS/ciel-launcher"
         for template in (ROOT / "services/launchd").glob("*.plist"):
-            document = plistlib.loads(render.render(template, self.source, home))
+            document = plistlib.loads(render.render(template, self.source, home, launcher))
             self.assertEqual(document["WorkingDirectory"], str(self.source))
             log_dir = home / ".ciel/log"
             self.assertEqual(Path(document["StandardOutPath"]).parent, log_dir)
-            # launchd opens the log files before the program runs and cannot
-            # create their directory, so the launcher must, then exec python.
-            program, flag, script = document["ProgramArguments"]
-            self.assertEqual([program, flag], ["/bin/sh", "-c"])
-            self.assertIn(f'mkdir -p "{log_dir}"', script)
-            self.assertIn(f'exec "{self.source / ".venv/bin/python"}" -m ciel', script)
+            # launchd starts the launcher bundle, which starts Python as a
+            # child: macOS asks for the microphone on behalf of the
+            # application responsible for a process, and neither Python's
+            # bundle nor a /bin/sh wrapper can be asked.
+            launcher, python, *arguments = document["ProgramArguments"]
+            self.assertEqual(launcher, str(home / "Ciel.app/Contents/MacOS/ciel-launcher"))
+            self.assertEqual(python, str(self.source / ".venv/bin/python"))
+            self.assertEqual(arguments[:2], ["-m", "ciel"])
+            self.assertNotIn("/bin/sh", document["ProgramArguments"])
+
+    @unittest.skipUnless(shutil.which("cc") and shutil.which("codesign"), "needs a C compiler and codesign")
+    def test_launcher_bundle_starts_a_child_and_forwards_signals(self):
+        output = Path(self.temp.name) / "rendered"
+        executable = render.build_launcher(output)
+        self.assertEqual(executable, output / "Ciel.app/Contents/MacOS/ciel-launcher")
+        info = plistlib.loads((output / "Ciel.app/Contents/Info.plist").read_bytes())
+        self.assertIn("NSMicrophoneUsageDescription", info)
+        self.assertEqual(info["CFBundleExecutable"], "ciel-launcher")
+        done = subprocess.run([str(executable), "/bin/sh", "-c", "exit 3"])
+        self.assertEqual(done.returncode, 3)
+        self.assertEqual(subprocess.run([str(executable)]).returncode, 64)
+        self.assertEqual(subprocess.run([str(executable), "/nonexistent/python"], capture_output=True).returncode, 127)
+        marker = Path(self.temp.name) / "child.pid"
+        proc = subprocess.Popen([str(executable), "/bin/sh", "-c", f"echo $$ > '{marker}'; sleep 30"])
+        deadline = time.monotonic() + 5
+        while not marker.exists() and time.monotonic() < deadline:
+            time.sleep(0.05)
+        child = int(marker.read_text())
+        proc.send_signal(signal.SIGTERM)
+        self.assertEqual(proc.wait(timeout=5), 128 + signal.SIGTERM)
+        for _ in range(50):
+            try:
+                os.kill(child, 0)
+            except ProcessLookupError:
+                break
+            time.sleep(0.1)
+        else:
+            self.fail("the child outlived the launcher")
+
+    def test_rendering_makes_the_log_directory_launchd_opens(self):
+        home = Path(self.temp.name) / "fresh home"
+        self.assertFalse((home / ".ciel/log").exists())
+        self.assertEqual(render.ensure_log_dir(home), home / ".ciel/log")
+        self.assertTrue((home / ".ciel/log").is_dir())
+        render.ensure_log_dir(home)  # idempotent on a machine that already has it
 
 
 if __name__ == "__main__":

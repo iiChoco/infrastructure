@@ -71,7 +71,20 @@ plutil -lint rendered/ai.ciel.spoke.plist
 
 Templates in `services/launchd` contain placeholders; install only rendered
 plists. Rendering generates absolute paths without hardcoding a Mac username
-in source. Create `~/.ciel/log` and prepare the Ciel environment with
+in source, creates `~/.ciel/log`, which launchd must open before the program
+runs, and builds `rendered/Ciel.app`, the launcher launchd actually starts.
+
+The launcher exists for the microphone. macOS asks for it on behalf of the
+*application responsible* for a process, and only an application whose
+Info.plist says why (`NSMicrophoneUsageDescription`) is ever asked: Python's
+bundle says nothing, so a spoke launchd starts as python is denied in
+silence, and a `/bin/sh -c 'exec python'` wrapper is an Apple platform binary
+that is never asked either. `Ciel.app` (`services/launcher/main.c`) is a
+few lines of C that spawn Python as a child, forward launchd's signals, and
+exit with the child's status. The first start prompts "Ciel" would like to
+access the microphone; allow it, and the grant outlives every source reload,
+since the child re-execs in place. It is ad-hoc signed, so **rebuilding the
+launcher means allowing it again**. Prepare the Ciel environment with
 `uv sync --locked --all-extras` in the Ciel checkout before loading a service.
 Fresh environments also need openWakeWord's downloaded support models. This
 applies even when the configured wake phrase uses a custom model in `~/.ciel`:
