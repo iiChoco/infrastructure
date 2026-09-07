@@ -2,20 +2,41 @@
 
 ## Routing inventory
 
-The existing application documentation describes these routes on the same VM:
+Verified through the deployed Cloudflare tunnel and Door on 2026-09-06:
 
-| Host / path | Destination | Access described in application docs |
+| Host / path | Destination | Access |
 |---|---|---|
-| `ciel.yunhan.me` | Ciel hub's web interface (Chart) | Owner's Cloudflare Access gate |
-| `ciel.yunhan.me/interview` | Ciel Interview, served by the hub | Application account login; separate Access policy |
-| `auth.yunhan.me` | Door | Application login; admin paths additionally owner-gated |
-| `math.yunhan.me` | Door serving the math static directory | Application login for per-user persistence |
+| `yunhan.me/` | Door's public landing page | Public |
+| `yunhan.me/toolbox` | Door's favorites-first launcher | Door account login |
+| `yunhan.me/<word>` | Door's temporary short-link redirect | Public until its deadline, at most 24 hours |
+| `tools.yunhan.me/qr`, `/color`, `/url`, `/convert`, `/image`, `/json`, `/pdf`, `/text`, `/password`, `/timer` | Door's private tools | Same shared Door login |
+| `ciel.yunhan.me` | Ciel hub's Chart | Existing Cloudflare Access gate |
+| `ciel.yunhan.me/interview` | Ciel Interview | Existing Access policy and application login |
+| `auth.yunhan.me` | Door | Admin paths retain the additional owner Access gate |
+| `math.yunhan.me` | Door's math static directory | Application login for per-user persistence |
 
-These are an inventory from repository documentation, not a downloaded or
-verified production tunnel configuration. Retrieve the deployed ingress and
-Access settings before changing routing. The root site's deployed origin was
-not established by the repository audit. No DNS/tunnel/Access settings were
-changed during the local reorganization.
+The remotely managed `ciel-hub` tunnel sends apex, tools, auth, and math to
+`http://100.118.127.52:8770`; Ciel stays on port 8765. Apex and tools have proxied
+CNAME records to the same tunnel. Cloudflare automatically flattens the apex
+CNAME; the three existing MX records and SPF TXT record were preserved and
+verified unchanged. No Access policy was changed. Old apex `/tools/<slug>` URLs
+redirect to the corresponding short path on the tools hostname.
+
+The website deployment preserves the existing server paths, config, accounts,
+and installed service unit. The pre-release source archive is
+`/home/ciel/.cache/website-releases/before-tools-fi2eq4yp/source.tar.gz` on the VM;
+it excludes the virtual environment and Git. Runtime state is outside that
+archive. Roll back source independently of `~/.door`, particularly the reserved
+short-link names in `shortlinks.sqlite3`. If removing this release's routing,
+remove only the newly added apex/tools ingress and web CNAME records; preserve
+all mail, Ciel, auth, math, and Access settings.
+
+Validation: 25 website checks, 7 infrastructure checks, local browser checks for
+cross-subdomain cookies and all ten tools, plus live HTTPS checks for the landing,
+login redirects, private APIs, static assets, and Math. The VM resolves the new
+apex normally; the Mac briefly retained a negative DNS cache from before the
+record existed, so local HTTPS checks used a fresh Cloudflare DNS answer with
+normal TLS verification. Production accounts were not modified for testing.
 
 ## Server configuration
 
@@ -65,3 +86,7 @@ This repository documents recovery but does not yet schedule production
 backups. Define and verify a separate encrypted backup/restore process for
 runtime memory, accounts, interview recordings, configuration, and the server
 before relying on the source repository as an operational recovery system.
+
+Website rsync excludes `/door/deploy/door.service` so a legacy service recovery
+copy survives application deployments. It does not replace the installed unit
+or the maintained definition in `services/systemd/door.service`.

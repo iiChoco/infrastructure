@@ -49,6 +49,18 @@ class DeploymentTests(unittest.TestCase):
         self.assertIn("--locked", plan[1][-1])
         self.assertNotIn("tail", plan[1][-1])
 
+    def test_website_deploy_preserves_legacy_service_recovery_copy(self):
+        (self.source / "door").mkdir()
+        (self.source / "door/pyproject.toml").write_text('[project]\nname = "door"\n')
+        (self.source / "math/public").mkdir(parents=True)
+        (self.source / "math/public/index.html").touch()
+        for apply in (False, True):
+            command = deploy.commands("website", self.source, "user@host", "~/website", False, apply)[0]
+            index = command.index("/door/deploy/door.service")
+            self.assertEqual(command[index - 1], "--exclude")
+            self.assertNotIn("--delete-excluded", command)
+        self.assertNotIn("/door/deploy/door.service", deploy.commands("ciel", self.source, "user@host", "~/ciel", False, True)[0])
+
     def test_default_cli_does_not_contact_server(self):
         argv = ["deploy.py", "ciel", "--source", str(self.source), "--sync"]
         with patch("sys.argv", argv), patch.object(deploy.subprocess, "run") as run:

@@ -112,3 +112,7 @@ python3 scripts/deploy.py website
 No credentials, live accounts, memory, recordings, private keys, or backups
 belong in this repository. Store backups separately with restricted permissions.
 This repository is local until a remote is explicitly configured and pushed.
+
+Website deployments preserve an older server's `door/deploy/door.service` recovery
+copy. The maintained service definition lives here under `services/systemd`;
+removing a legacy copy is a separate service migration.

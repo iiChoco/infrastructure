@@ -57,6 +57,10 @@ def commands(target: str, source: Path, host: str, destination: str, sync: bool,
     for exclusion in [".git", ".venv", "__pycache__", ".claude", ".codex", ".agents",
                       ".DS_Store", ".ruff_cache", "node_modules", ".env", ".env.*", "reports"]:
         rsync.extend(["--exclude", exclusion])
+    if target == "website":
+        # Older installs keep a service recovery copy in the app tree. Its
+        # removal belongs to a deliberate service migration, not a site push.
+        rsync.extend(["--exclude", "/door/deploy/door.service"])
     rsync.extend([str(source) + "/", f"{host}:{destination}/"])
     result = [rsync]
     if sync:
